@@ -1,2 +1,2 @@
 # note-keeping
-Just a place to keep my professional notes. Feel free to browse and critique.
+Just a place to dump my thoughts. Feel free to browse and critique.
