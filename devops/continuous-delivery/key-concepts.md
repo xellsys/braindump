@@ -1,0 +1,7 @@
+- build avoidance: do not do the same thing twice
+- cause and effect: do not trigger just because (time etc)
+- fast: focus on reducing change to market
+- feedback: provide the right feedback asap to the right stakeholder
+- automate what can be automated
+- trust: provide sufficient testing so that a change can go live with an easy mind
+- 
