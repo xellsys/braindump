@@ -53,3 +53,5 @@ often we are dealing with a system being on the edge of a complicated to a compl
 ### questions
 
 _Does continuous deployment count as an adaptive system?_
+
+_What does the looming fact that microservices are a complex system entail?_
