@@ -1,0 +1,89 @@
+version: '4'
+
+# workflow:
+# execute: docker-compose test
+# -> 1-4 are similar steps to what 'up' (in version 3) performs, with the exception of also verifying the testrunner image and creating an identical project name
+# 1.  verify all images with corresponding tags incl testrunner image exist in docker cache
+# 2.  generate an identical (node wide) compose project based on the directory name, eg: <dir>_<project-id>
+# 3.  create docker network with same identifier, eg: <dir>_<project-id>
+# 4.  start all containers under 'services:'
+# 5.  perform checks on all health checks -> if any fails, exit -1
+# 6.  once all health checks are green, startup the testrunner image
+# 7.  tests are being performed, test results and possible test archives are written in volumes
+# 8.  persist logs (of all services and testrunner), test results and test archive
+#     could be copied into current dir, or build/.. to be grabbed by CI tool
+# 9.  gracefully shut down services
+# 10. remove containers, remove network, remove project, remove volumes
+
+# flags:
+# --no-test
+#   no testrunner image is being started, not tests executed, basically its steps 1-5
+# --project-name
+#   same functionality, overrides --project-id
+# --project-id
+#   specify a project identifier, no effect if --project-name is provided
+
+
+# this block is new and allows for generic test configuration
+# it is required when running docker-compose test
+test:
+  # startup timeout for all services to reach a succeeding health check
+  defaults:
+    healthcheck:
+      test: curl -f http://localhost:8080
+      interval: 1s
+      timeout: 5s
+      retries: 5
+  # define your container which executes tests in this setup
+  # it is a mandatory field
+  # same / similar configuration as a service block
+  # it is only being started once all health checks are green
+  # it needs to terminate when the tests are done or the timeout is reached
+  # it needs to write a results output in the mounted test-results
+  # it should represent the number of test failures as exit code: [0-X], whereas a negative exit code indicates an error
+  # optionally: it needs to write files to archive in the mounted test-archive
+  # how tests are executed within this container is completely irrelevant to the docker-compose test execution
+  testrunner:
+    image: mytestrunner
+    # a persistence volume for test results and possible files to archive is mounted
+    # if that is not provided, no files are being persisted.
+    # it is the responsibility of the testrunner image to write all that needs to be persisted in that folder
+    volumes:
+      ./results:/results
+    # provide a timeout after which the execution is stopped forcefully
+    timeout: 600s
+
+services:
+  # define your services under test
+  my-service:
+    image: my-service
+    depends_on:
+      - postgres
+    # optional, overriding the default in the test block
+    # keep in mind, that this block needs to be considered in docker-compose up. ideally 'up' can implement that feature.
+    healthcheck:
+      test: curl -f http://localhost:8080/health
+      interval: 1s
+      timeout: 20s
+      retries: 20
+
+  postgres:
+    image: postgres
+    # in this case we need to specify none, as otherwise the default would be applied and we dont declare a health check for this service
+    healthcheck: none
+
+  # this is a configuration container which starts, executes some one time commands and terminates
+  my-configuration-container:
+    image: my-configuration-image
+    # additional option for configuration containers
+    # if the condition is not fulfilled within the timeout (indicating failure) tests are not run
+    exited:
+      # this refers to the exit code of the container
+      condition:
+        equals: 0
+        # alternatives:
+        # not-equals: -1
+        # larger-than: 0
+        # smaller-than: 100
+        # regex: -?\d\d
+      timeout: 20s
